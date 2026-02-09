@@ -9,18 +9,24 @@ $edit = false;
    DELETE DATA
 ================= */
 if (isset($_GET['hapus'])) {
+    $id = (int)$_GET['hapus'];
 
-    $id = $_GET['hapus'];
+    // CEK apakah alat masih dipakai di peminjaman
+    $cek = mysqli_query($conn, "SELECT id FROM peminjaman WHERE alat_id=$id");
 
-    $ambil = mysqli_query($conn,"SELECT gambar FROM alat WHERE id='$id'");
-    $data = mysqli_fetch_assoc($ambil);
-
-    if ($data['gambar'] != "") {
-        unlink("../gambar/".$data['gambar']);
+    if (mysqli_num_rows($cek) > 0) {
+        echo "<script>
+            alert('Alat masih pernah dipinjam, tidak bisa dihapus!');
+            window.location='alat.php';
+        </script>";
+        exit;
     }
 
-    mysqli_query($conn,"DELETE FROM alat WHERE id='$id'");
+    // Kalau aman baru hapus
+    mysqli_query($conn, "DELETE FROM alat WHERE id=$id");
+
     header("Location: alat.php");
+    exit;
 }
 
 /* =================
