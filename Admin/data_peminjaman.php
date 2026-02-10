@@ -3,6 +3,20 @@ session_start();
 include '../koneksi.php';
 
 /* =====================
+   UPDATE DENDA OTOMATIS (TELAT)
+===================== */
+$today = date('Y-m-d');
+
+mysqli_query($conn, "
+    UPDATE peminjaman
+    SET status = 'terlambat',
+        denda = DATEDIFF('$today', tanggal_kembali) * 5000
+    WHERE status != 'dikembalikan'
+      AND tanggal_kembali IS NOT NULL
+      AND tanggal_kembali < '$today'
+");
+
+/* =====================
    CEK ROLE ADMIN
 ===================== */
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
@@ -37,13 +51,13 @@ if (isset($_POST['update'])) {
     $tanggal_kembali = mysqli_real_escape_string($conn, $_POST['tanggal_kembali']);
     $status = mysqli_real_escape_string($conn, $_POST['status']);
 
-    // daftar status yang VALID (harus sama dengan ENUM di database)
     $status_valid = [
         'menunggu',
         'disetujui',
         'ditolak',
         'menunggu_pengembalian',
-        'dikembalikan'
+        'dikembalikan',
+        'terlambat'
     ];
 
     if (!in_array($status, $status_valid)) {
@@ -51,10 +65,33 @@ if (isset($_POST['update'])) {
         exit;
     }
 
+    $denda = 0;
+
+    // HITUNG DENDA JIKA SUDAH DIKEMBALIKAN
+    if ($status == 'dikembalikan') {
+
+        $data = mysqli_fetch_assoc(mysqli_query($conn,"
+            SELECT tanggal_kembali 
+            FROM peminjaman 
+            WHERE id=$id
+        "));
+
+        if ($data) {
+            $tgl_seharusnya = $data['tanggal_kembali'];
+            $today = date('Y-m-d');
+
+            if ($today > $tgl_seharusnya) {
+                $hari_telat = (strtotime($today) - strtotime($tgl_seharusnya)) / 86400;
+                $denda = $hari_telat * 5000;
+            }
+        }
+    }
+
     $update = mysqli_query($conn, "
         UPDATE peminjaman 
         SET tanggal_kembali='$tanggal_kembali',
-            status='$status'
+            status='$status',
+            denda='$denda'
         WHERE id=$id
     ");
 
@@ -65,8 +102,6 @@ if (isset($_POST['update'])) {
     header("Location: data_peminjaman.php");
     exit;
 }
-
-
 ?>
 
 
@@ -103,6 +138,7 @@ if (isset($_POST['update'])) {
                     <th class="p-3 text-left">Tgl Pinjam</th>
                     <th class="p-3 text-left">Tgl Kembali</th>
                     <th class="p-3 text-center">Status</th>
+                    <th class="p-3 text-center">Denda</th>
                     <th class="p-3 text-center">Aksi</th>
                 </tr>
             </thead>
@@ -127,13 +163,25 @@ if (isset($_POST['update'])) {
                     <td class="p-3"><?= $d['tanggal_pinjam'] ?></td>
                     <td class="p-3"><?= $d['tanggal_kembali'] ?: '-' ?></td>
                     <td class="p-3 text-center">
-                        <span class="px-3 py-1 rounded-full text-xs font-medium
-                        <?= $d['status']=='dipinjam'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-green-100 text-green-700' ?>">
-                            <?= $d['status'] ?>
-                        </span>
+    <span class="px-3 py-1 rounded-full text-xs font-medium
+    <?php
+        if ($d['status'] == 'terlambat') {
+            echo 'bg-red-100 text-red-700';
+        } elseif ($d['status'] == 'menunggu_pengembalian') {
+            echo 'bg-yellow-100 text-yellow-700';
+        } elseif ($d['status'] == 'disetujui') {
+            echo 'bg-green-100 text-green-700';
+        } else {
+            echo 'bg-gray-100 text-gray-600';
+        }
+    ?>">
+        <?= ucfirst(str_replace('_', ' ', $d['status'])) ?>
+    </span>
+</td>
+                    <td class="p-3 text-center">
+                        Rp <?= number_format($d['denda']) ?>
                     </td>
+
                     <td class="p-3 text-center space-x-2">
                         <a href="?edit=<?= $d['id'] ?>"
                            class="text-blue-600 hover:underline">

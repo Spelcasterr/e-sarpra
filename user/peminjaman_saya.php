@@ -29,7 +29,6 @@ $data = mysqli_query($conn, "
 
 <div class="max-w-6xl mx-auto p-6">
 
-    <!-- HEADER -->
     <div class="flex justify-between items-center mb-8">
         <div>
             <h1 class="text-2xl font-bold">Peminjaman Saya</h1>
@@ -44,7 +43,6 @@ $data = mysqli_query($conn, "
         </a>
     </div>
 
-    <!-- TABLE -->
     <div class="bg-white shadow rounded-xl overflow-hidden">
 
         <table class="w-full text-sm">
@@ -56,6 +54,7 @@ $data = mysqli_query($conn, "
                     <th class="px-4 py-3 text-center">Tgl Pinjam</th>
                     <th class="px-4 py-3 text-center">Tgl Kembali</th>
                     <th class="px-4 py-3 text-center">Status</th>
+                    <th class="px-4 py-3 text-center">Denda</th>
                     <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
             </thead>
@@ -66,7 +65,7 @@ $data = mysqli_query($conn, "
             $no = 1;
             if (mysqli_num_rows($data) === 0): ?>
                 <tr>
-                    <td colspan="7" class="text-center py-10 text-gray-500">
+                    <td colspan="8" class="text-center py-10 text-gray-500">
                         Belum ada peminjaman
                     </td>
                 </tr>
@@ -78,17 +77,10 @@ $data = mysqli_query($conn, "
                     <td class="px-4 py-3 font-medium">
                         <?= htmlspecialchars($row['nama_alat']) ?>
                     </td>
-                    <td class="px-4 py-3 text-center">
-                        <?= $row['jumlah'] ?>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                        <?= $row['tanggal_pinjam'] ?>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                        <?= $row['tanggal_kembali'] ?>
-                    </td>
+                    <td class="px-4 py-3 text-center"><?= $row['jumlah'] ?></td>
+                    <td class="px-4 py-3 text-center"><?= $row['tanggal_pinjam'] ?></td>
+                    <td class="px-4 py-3 text-center"><?= $row['tanggal_kembali'] ?></td>
 
-                    <!-- STATUS -->
                     <td class="px-4 py-3 text-center">
                         <?php
                         $status = $row['status'];
@@ -98,6 +90,7 @@ $data = mysqli_query($conn, "
                             'ditolak' => 'bg-red-100 text-red-600',
                             'menunggu_pengembalian' => 'bg-blue-100 text-blue-600',
                             'dikembalikan' => 'bg-gray-200 text-gray-600',
+                            'terlambat' => 'bg-red-100 text-red-700',
                             default => 'bg-gray-100 text-gray-600'
                         };
                         ?>
@@ -106,7 +99,13 @@ $data = mysqli_query($conn, "
                         </span>
                     </td>
 
-                    <!-- AKSI -->
+                    <!-- DENDA -->
+                    <td class="px-4 py-3 text-center">
+                        <?= ($row['denda'] ?? 0) > 0 
+                            ? "Rp ".number_format($row['denda']) 
+                            : "-" ?>
+                    </td>
+
                     <td class="px-4 py-3 text-center">
                         <?php if ($status === 'disetujui'): ?>
                             <a href="ajukan_pengembalian.php?id=<?= $row['id'] ?>"
@@ -115,13 +114,9 @@ $data = mysqli_query($conn, "
                                 Kembalikan
                             </a>
                         <?php elseif ($status === 'menunggu_pengembalian'): ?>
-                            <span class="text-xs text-gray-500">
-                                Menunggu petugas
-                            </span>
+                            <span class="text-xs text-gray-500">Menunggu petugas</span>
                         <?php elseif ($status === 'dikembalikan'): ?>
-                            <span class="text-xs text-gray-500">
-                                Selesai
-                            </span>
+                            <span class="text-xs text-gray-500">Selesai</span>
                         <?php else: ?>
                             <span class="text-xs text-gray-400">-</span>
                         <?php endif; ?>
