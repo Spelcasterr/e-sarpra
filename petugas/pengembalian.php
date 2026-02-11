@@ -84,6 +84,7 @@ $data = mysqli_query($conn, "
                     <th class="px-4 py-3 text-left">Alat</th>
                     <th class="px-4 py-3 text-center">Jumlah</th>
                     <th class="px-4 py-3 text-center">Tanggal Kembali</th>
+                    <th class="px-4 py-3 text-center">denda</th>
                     <th class="px-4 py-3 text-center">Aksi</th>
                 </tr>
             </thead>
@@ -103,6 +104,7 @@ $data = mysqli_query($conn, "
                     <td class="px-4 py-3"><?= htmlspecialchars($d['nama_alat']) ?></td>
                     <td class="px-4 py-3 text-center"><?= $d['jumlah'] ?></td>
                     <td class="px-4 py-3 text-center"><?= $d['tanggal_kembali'] ?></td>
+                    <td class="px-4 py-3 text-center"><?= $d['denda'] ?></td>
                     <td class="px-4 py-3 text-center">
                         <a href="setujui_pengembalian.php?id=<?= $d['id'] ?>"
                            onclick="return confirm('Setujui pengembalian barang ini?')"

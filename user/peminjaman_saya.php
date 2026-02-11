@@ -107,7 +107,7 @@ $data = mysqli_query($conn, "
                     </td>
 
                     <td class="px-4 py-3 text-center">
-                        <?php if ($status === 'disetujui'): ?>
+                        <?php if ($status === 'disetujui' || $status === 'terlambat'): ?>
                             <a href="ajukan_pengembalian.php?id=<?= $row['id'] ?>"
                                onclick="return confirm('Ajukan pengembalian barang ini?')"
                                class="bg-black text-white px-4 py-1 rounded-full text-xs hover:bg-gray-800">

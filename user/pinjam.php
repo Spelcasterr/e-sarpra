@@ -88,6 +88,7 @@ if (!$data) {
             <input type="date"
                    name="tanggal_kembali"
                    required
+                   min="<?= date('Y-m-d') ?>"
                    class="w-full border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-black">
         </div>
 
