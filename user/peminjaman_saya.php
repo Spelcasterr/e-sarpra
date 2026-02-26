@@ -2,20 +2,40 @@
 session_start();
 include '../koneksi.php';
 
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'peminjam') {
+// Validasi login dan role
+if (
+    !isset($_SESSION['login']) ||
+    $_SESSION['login'] !== true ||
+    !isset($_SESSION['role']) ||
+    $_SESSION['role'] !== 'peminjam' ||
+    !isset($_SESSION['user_id'])
+) {
     header("Location: ../login.php");
     exit;
 }
 
-$user_id = $_SESSION['id'];
+$user_id = $_SESSION['user_id'];
 
-$data = mysqli_query($conn, "
+// Prepared statement (aman)
+$stmt = $conn->prepare("
     SELECT p.*, a.nama_alat
     FROM peminjaman p
     JOIN alat a ON p.alat_id = a.id
-    WHERE p.user_id = $user_id
+    WHERE p.user_id = ?
     ORDER BY p.id DESC
 ");
+
+if (!$stmt) {
+    die("Prepare failed: " . $conn->error);
+}
+
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$data = $stmt->get_result();
+
+if (!$data) {
+    die("Query failed: " . $conn->error);
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -39,7 +59,7 @@ $data = mysqli_query($conn, "
 
         <a href="peminjam.php"
            class="text-sm bg-gray-200 px-5 py-2 rounded-full hover:bg-gray-300">
-            ← kembali
+            ← Kembali
         </a>
     </div>
 
@@ -60,30 +80,43 @@ $data = mysqli_query($conn, "
             </thead>
 
             <tbody class="divide-y">
-
             <?php
             $no = 1;
-            if (mysqli_num_rows($data) === 0): ?>
+
+            if ($data->num_rows === 0):
+            ?>
                 <tr>
                     <td colspan="8" class="text-center py-10 text-gray-500">
                         Belum ada peminjaman
                     </td>
                 </tr>
-            <?php endif; ?>
-
-            <?php while ($row = mysqli_fetch_assoc($data)): ?>
+            <?php
+            else:
+                while ($row = $data->fetch_assoc()):
+            ?>
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3"><?= $no++ ?></td>
+
                     <td class="px-4 py-3 font-medium">
                         <?= htmlspecialchars($row['nama_alat']) ?>
                     </td>
-                    <td class="px-4 py-3 text-center"><?= $row['jumlah'] ?></td>
-                    <td class="px-4 py-3 text-center"><?= $row['tanggal_pinjam'] ?></td>
-                    <td class="px-4 py-3 text-center"><?= $row['tanggal_kembali'] ?></td>
+
+                    <td class="px-4 py-3 text-center">
+                        <?= htmlspecialchars($row['jumlah']) ?>
+                    </td>
+
+                    <td class="px-4 py-3 text-center">
+                        <?= htmlspecialchars($row['tanggal_pinjam']) ?>
+                    </td>
+
+                    <td class="px-4 py-3 text-center">
+                        <?= htmlspecialchars($row['tanggal_kembali']) ?>
+                    </td>
 
                     <td class="px-4 py-3 text-center">
                         <?php
                         $status = $row['status'];
+
                         $badge = match ($status) {
                             'menunggu' => 'bg-orange-100 text-orange-600',
                             'disetujui' => 'bg-green-100 text-green-600',
@@ -95,14 +128,13 @@ $data = mysqli_query($conn, "
                         };
                         ?>
                         <span class="px-3 py-1 rounded-full text-xs font-medium <?= $badge ?>">
-                            <?= ucfirst(str_replace('_', ' ', $status)) ?>
+                            <?= ucfirst(str_replace('_', ' ', htmlspecialchars($status))) ?>
                         </span>
                     </td>
 
-                    <!-- DENDA -->
                     <td class="px-4 py-3 text-center">
-                        <?= ($row['denda'] ?? 0) > 0 
-                            ? "Rp ".number_format($row['denda']) 
+                        <?= ($row['denda'] ?? 0) > 0
+                            ? "Rp " . number_format($row['denda'], 0, ',', '.')
                             : "-" ?>
                     </td>
 
@@ -113,22 +145,26 @@ $data = mysqli_query($conn, "
                                class="bg-black text-white px-4 py-1 rounded-full text-xs hover:bg-gray-800">
                                 Kembalikan
                             </a>
+
                         <?php elseif ($status === 'menunggu_pengembalian'): ?>
                             <span class="text-xs text-gray-500">Menunggu petugas</span>
+
                         <?php elseif ($status === 'dikembalikan'): ?>
                             <span class="text-xs text-gray-500">Selesai</span>
+
                         <?php else: ?>
                             <span class="text-xs text-gray-400">-</span>
                         <?php endif; ?>
                     </td>
                 </tr>
-            <?php endwhile; ?>
-
+            <?php
+                endwhile;
+            endif;
+            ?>
             </tbody>
         </table>
 
     </div>
-
 </div>
 
 </body>
