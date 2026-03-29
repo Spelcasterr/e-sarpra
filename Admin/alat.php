@@ -2,6 +2,7 @@
 session_start();
 include '../koneksi.php';
 include '../config/log.php';
+include '../config/auto_log.php';
 
 /* =====================
    CEK LOGIN & ROLE
@@ -38,6 +39,7 @@ if (isset($_GET['hapus'])) {
     }
 
     mysqli_query($conn,"DELETE FROM alat WHERE id=$id");
+    simpanLog($conn, "hapus alat", "Menghapus alat : ".$data['nama alat']);
     header("Location: alat.php");
     exit;
 }
@@ -51,6 +53,7 @@ if (isset($_GET['edit'])) {
 
     $ambil = mysqli_query($conn,"SELECT * FROM alat WHERE id=$id_edit");
     $data_edit = mysqli_fetch_assoc($ambil);
+    
 }
 
 /* =================
@@ -74,7 +77,7 @@ if (isset($_POST['simpan'])) {
     (nama_alat,kategori_id,stok,gambar)
     VALUES ('$nama','$kategori','$stok','$gambar')");
 
-    simpanLog($conn,'CRUD Alat','Menambah alat: '.$nama);
+    simpanLog($conn,"Tambah Alat","Menambahkan alat: ".$nama);
 
     header("Location: alat.php");
     exit;
@@ -111,6 +114,7 @@ if (isset($_POST['update'])) {
         gambar='$gambar'
         WHERE id='$id'
     ");
+    simpanLog($conn,"Edit Alat","Mengedit alat: ".$nama);
 
     header("Location: alat.php");
     exit;

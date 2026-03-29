@@ -39,16 +39,21 @@ if (isset($_GET['edit'])) {
 if (isset($_GET['hapus'])) {
     $id = $_GET['hapus'];
 
-    $cek = mysqli_query($conn, "SELECT * FROM peminjaman WHERE user_id='$id'");
+    // Cek apakah user masih punya peminjaman AKTIF (belum dikembalikan)
+    $cek = mysqli_query($conn, "SELECT * FROM peminjaman WHERE user_id='$id' AND status NOT IN ('dikembalikan', 'selesai')");
 
     if (mysqli_num_rows($cek) > 0) {
         echo "<script>
-            alert('User masih memiliki data peminjaman!');
+            alert('User masih memiliki peminjaman aktif yang belum dikembalikan!');
             window.location='data_user.php';
         </script>";
         exit;
     }
 
+    // Hapus dulu semua riwayat peminjaman user (sudah selesai) agar tidak kena foreign key constraint
+    mysqli_query($conn, "DELETE FROM peminjaman WHERE user_id='$id'");
+
+    // Baru hapus user
     mysqli_query($conn, "DELETE FROM users WHERE id='$id'");
     header("Location: data_user.php");
     exit;

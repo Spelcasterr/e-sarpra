@@ -1,7 +1,8 @@
 <?php
 session_start();
 include '../koneksi.php';
-include '../config/log.php'; //
+include '../config/log.php'; 
+include '../config/auto_log.php';
 
 if ($_SESSION['role'] != 'admin') {
     header("Location: login.php");

@@ -31,6 +31,11 @@ $stmt = $conn->prepare("
     AND status IN ('disetujui', 'terlambat')
 ");
 
+simpanLog($conn,
+"pengembalian",
+"user mengajukan pengembalian ID ".$id
+);
+
 if (!$stmt) {
     die("Prepare failed: " . $conn->error);
 }

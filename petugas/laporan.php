@@ -43,10 +43,10 @@ $stok = mysqli_query($conn, "SELECT nama_alat, stok FROM alat");
 
 <body class="bg-gray-100">
 
-<div class="flex">
+<div class="flex h-screen overflow-hidden">
 
     <!-- SIDEBAR -->
-    <div class="w-64 min-h-screen bg-gradient-to-b from-blue-600 to-purple-600 text-white p-6 flex flex-col justify-between">
+    <div class="w-64 h-screen bg-gradient-to-b from-blue-600 to-purple-600 text-white p-6 flex flex-col justify-between">
 
         <div>
             <div class="mb-8">
@@ -95,7 +95,7 @@ $stok = mysqli_query($conn, "SELECT nama_alat, stok FROM alat");
     </div>
 
     <!-- CONTENT -->
-    <div class="flex-1 p-8 space-y-8">
+    <div class="flex-1 p-8 space-y-8 overflow-y-auto">
 
         <h1 class="text-2xl font-bold">
             Laporan Transaksi

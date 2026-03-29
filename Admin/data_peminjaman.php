@@ -15,6 +15,21 @@ $role     = $_SESSION['role'];
 $initial  = strtoupper(substr($username, 0, 1));
 
 /* =====================
+   FUNGSI LOG AKTIVITAS
+===================== */
+function catat_log($conn, $user_id, $role, $aktivitas, $deskripsi) {
+    $user_id   = (int) $user_id;
+    $role      = mysqli_real_escape_string($conn, $role);
+    $aktivitas = mysqli_real_escape_string($conn, $aktivitas);
+    $deskripsi = mysqli_real_escape_string($conn, $deskripsi);
+
+    mysqli_query($conn, "
+        INSERT INTO log_aktivitas (user_id, role, aktivitas, deskripsi, created_at)
+        VALUES ('$user_id', '$role', '$aktivitas', '$deskripsi', NOW())
+    ");
+}
+
+/* =====================
    UPDATE DENDA OTOMATIS
 ===================== */
 $today = date('Y-m-d');
@@ -57,20 +72,22 @@ if (isset($_POST['update'])) {
 
     $denda = 0;
 
-    if ($status == 'dikembalikan') {
+    // Ambil data peminjaman sebelum diupdate (untuk keperluan log)
+    $data_lama = mysqli_fetch_assoc(mysqli_query($conn, "
+        SELECT p.*, u.username, a.nama_alat
+        FROM peminjaman p
+        JOIN users u ON p.user_id = u.id
+        JOIN alat a ON p.alat_id = a.id
+        WHERE p.id = $id
+    "));
 
-        $data = mysqli_fetch_assoc(mysqli_query($conn,"
-            SELECT tanggal_kembali FROM peminjaman WHERE id=$id
-        "));
+    if ($data_lama) {
+        $tgl_seharusnya = $data_lama['tanggal_kembali'];
+        $today_check    = date('Y-m-d');
 
-        if ($data) {
-            $tgl_seharusnya = $data['tanggal_kembali'];
-            $today = date('Y-m-d');
-
-            if ($today > $tgl_seharusnya) {
-                $hari_telat = (strtotime($today) - strtotime($tgl_seharusnya)) / 86400;
-                $denda = $hari_telat * 5000;
-            }
+        if ($status == 'dikembalikan' && $today_check > $tgl_seharusnya) {
+            $hari_telat = (strtotime($today_check) - strtotime($tgl_seharusnya)) / 86400;
+            $denda = $hari_telat * 5000;
         }
     }
 
@@ -81,6 +98,28 @@ if (isset($_POST['update'])) {
             denda='$denda'
         WHERE id=$id
     ");
+
+    // ---- CATAT LOG ----
+    $nama_peminjam = $data_lama['username']  ?? 'Unknown';
+    $nama_alat     = $data_lama['nama_alat'] ?? 'Unknown';
+
+    if ($status === 'dikembalikan') {
+        $label_aktivitas = 'Pengembalian Alat';
+        $label_deskripsi = "Admin menandai alat \"$nama_alat\" milik $nama_peminjam sebagai dikembalikan"
+                         . ($denda > 0 ? " (denda: Rp " . number_format($denda) . ")" : "");
+    } else {
+        $label_aktivitas = 'Update Status Peminjaman';
+        $label_deskripsi = "Admin mengubah status peminjaman alat \"$nama_alat\" milik $nama_peminjam menjadi: $status";
+    }
+
+    catat_log(
+        $conn,
+        $_SESSION['user_id'],
+        $_SESSION['role'],
+        $label_aktivitas,
+        $label_deskripsi
+    );
+    // -------------------
 
     header("Location: data_peminjaman.php");
     exit;
@@ -164,6 +203,48 @@ if (isset($_POST['update'])) {
     <div class="flex-1 p-8 space-y-8">
 
         <h1 class="text-2xl font-bold">Data Peminjaman Aktif</h1>
+
+        <!-- FORM EDIT (muncul jika mode edit aktif) -->
+        <?php if ($edit): ?>
+        <div class="bg-white rounded-xl shadow p-6 max-w-lg">
+            <h2 class="text-lg font-semibold mb-4">Edit Peminjaman #<?= $data_edit['id'] ?></h2>
+            <form method="POST">
+                <input type="hidden" name="id" value="<?= $data_edit['id'] ?>">
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Kembali</label>
+                    <input type="date" name="tanggal_kembali"
+                           value="<?= htmlspecialchars($data_edit['tanggal_kembali']) ?>"
+                           class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                        <?php
+                        $statuses = ['dipinjam','terlambat','dikembalikan'];
+                        foreach ($statuses as $s):
+                        ?>
+                        <option value="<?= $s ?>" <?= $data_edit['status']==$s ? 'selected' : '' ?>>
+                            <?= ucfirst(str_replace('_',' ',$s)) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="flex gap-3">
+                    <button type="submit" name="update"
+                            class="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm hover:bg-blue-700">
+                        Simpan
+                    </button>
+                    <a href="data_peminjaman.php"
+                       class="bg-gray-200 text-gray-700 px-5 py-2 rounded-lg text-sm hover:bg-gray-300">
+                        Batal
+                    </a>
+                </div>
+            </form>
+        </div>
+        <?php endif; ?>
 
         <div class="bg-white rounded-xl shadow overflow-x-auto">
             <table class="w-full text-sm">

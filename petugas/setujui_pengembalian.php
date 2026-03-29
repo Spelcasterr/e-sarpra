@@ -2,6 +2,7 @@
 session_start();
 include '../koneksi.php';
 include '../config/log.php';
+include '../config/auto_log.php';
 
 if ($_SESSION['role'] !== 'petugas') {
     exit;
