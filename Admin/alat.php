@@ -1,8 +1,7 @@
 <?php
 session_start();
 include '../koneksi.php';
-include '../config/log.php';
-include '../config/auto_log.php';
+include '../log_helper.php';
 
 /* =====================
    CEK LOGIN & ROLE
@@ -28,18 +27,40 @@ $edit = false;
 if (isset($_GET['hapus'])) {
     $id = (int)$_GET['hapus'];
 
-    $cek = mysqli_query($conn,"SELECT id FROM peminjaman WHERE alat_id=$id");
+    // Ambil nama alat untuk log
+    $ambilAlat = mysqli_query($conn, "SELECT nama_alat FROM alat WHERE id=$id");
+    $dataAlat  = mysqli_fetch_assoc($ambilAlat);
+
+    // Cek peminjaman yang masih aktif
+    $cek = mysqli_query($conn, "
+        SELECT id FROM peminjaman 
+        WHERE alat_id = $id 
+        AND status NOT IN ('dikembalikan', 'ditolak')
+    ");
 
     if (mysqli_num_rows($cek) > 0) {
         echo "<script>
-            alert('Alat masih pernah dipinjam!');
+            alert('Alat masih sedang dipinjam!');
             window.location='alat.php';
         </script>";
         exit;
     }
 
-    mysqli_query($conn,"DELETE FROM alat WHERE id=$id");
-    simpanLog($conn, "hapus alat", "Menghapus alat : ".$data['nama alat']);
+    // Hapus riwayat peminjaman dulu
+    mysqli_query($conn, "DELETE FROM peminjaman WHERE alat_id = $id");
+
+    // Baru hapus alat
+    mysqli_query($conn, "DELETE FROM alat WHERE id = $id");
+
+    tambah_log(
+        $conn,
+        $user_id,
+        $username,
+        $role,
+        "Hapus Alat",
+        "Menghapus alat: " . $dataAlat['nama_alat']
+    );
+
     header("Location: alat.php");
     exit;
 }
@@ -53,7 +74,6 @@ if (isset($_GET['edit'])) {
 
     $ambil = mysqli_query($conn,"SELECT * FROM alat WHERE id=$id_edit");
     $data_edit = mysqli_fetch_assoc($ambil);
-    
 }
 
 /* =================
@@ -61,12 +81,12 @@ if (isset($_GET['edit'])) {
 ================= */
 if (isset($_POST['simpan'])) {
 
-    $nama = $_POST['nama'];
+    $nama     = $_POST['nama'];
     $kategori = $_POST['kategori'];
-    $stok = $_POST['stok'];
+    $stok     = $_POST['stok'];
 
     $gambar = $_FILES['gambar']['name'];
-    $tmp = $_FILES['gambar']['tmp_name'];
+    $tmp    = $_FILES['gambar']['tmp_name'];
 
     if ($gambar != "") {
         $gambar = time()."_".$gambar;
@@ -74,10 +94,18 @@ if (isset($_POST['simpan'])) {
     }
 
     mysqli_query($conn,"INSERT INTO alat 
-    (nama_alat,kategori_id,stok,gambar)
-    VALUES ('$nama','$kategori','$stok','$gambar')");
+        (nama_alat, kategori_id, stok, gambar)
+        VALUES ('$nama', '$kategori', '$stok', '$gambar')
+    ");
 
-    simpanLog($conn,"Tambah Alat","Menambahkan alat: ".$nama);
+    tambah_log(
+        $conn,
+        $user_id,
+        $username,
+        $role,
+        "Tambah Alat",
+        "Menambahkan alat: " . $nama
+    );
 
     header("Location: alat.php");
     exit;
@@ -88,33 +116,39 @@ if (isset($_POST['simpan'])) {
 ================= */
 if (isset($_POST['update'])) {
 
-    $id = $_POST['id'];
-    $nama = $_POST['nama'];
-    $kategori = $_POST['kategori'];
-    $stok = $_POST['stok'];
+    $id          = $_POST['id'];
+    $nama        = $_POST['nama'];
+    $kategori    = $_POST['kategori'];
+    $stok        = $_POST['stok'];
     $gambar_lama = $_POST['gambar_lama'];
 
     if ($_FILES['gambar']['name'] != "") {
-
         $gambar = time()."_".$_FILES['gambar']['name'];
         move_uploaded_file($_FILES['gambar']['tmp_name'],"../gambar/".$gambar);
 
         if ($gambar_lama != "" && file_exists("../gambar/".$gambar_lama)) {
             unlink("../gambar/".$gambar_lama);
         }
-
     } else {
         $gambar = $gambar_lama;
     }
 
     mysqli_query($conn,"UPDATE alat SET
-        nama_alat='$nama',
-        kategori_id='$kategori',
-        stok='$stok',
-        gambar='$gambar'
-        WHERE id='$id'
+        nama_alat   = '$nama',
+        kategori_id = '$kategori',
+        stok        = '$stok',
+        gambar      = '$gambar'
+        WHERE id    = '$id'
     ");
-    simpanLog($conn,"Edit Alat","Mengedit alat: ".$nama);
+
+    tambah_log(
+        $conn,
+        $user_id,
+        $username,
+        $role,
+        "Edit Alat",
+        "Mengedit alat: " . $nama
+    );
 
     header("Location: alat.php");
     exit;
@@ -129,11 +163,10 @@ if (isset($_POST['update'])) {
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="bg-gray-100 flex">
+<body class="bg-gray-100 flex h-screen overflow-hidden">
 
 <!-- SIDEBAR -->
-<div class="w-64 min-h-screen bg-gradient-to-b from-blue-600 to-purple-600 text-white p-6 flex flex-col justify-between">
-
+<div class="w-64 h-screen bg-gradient-to-b from-[#1565C0] to-[#0D47A1] text-white p-6 flex flex-col justify-between flex-shrink-0 overflow-y-auto">
     <div>
 
         <div class="mb-8">
@@ -151,36 +184,43 @@ if (isset($_POST['update'])) {
             </div>
         </div>
 
-        <div class="space-y-3 text-sm">
+        <div class="space-y-1 text-sm">
 
-            <a href="admin.php" class="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg">
-                <span>📊</span><span>Dashboard</span>
+            <a href="admin.php" class="flex items-center gap-3 text-white/80 hover:bg-white/10 hover:text-white px-4 py-2.5 rounded-xl transition-all font-sora">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Dashboard</span>
             </a>
 
-            <a href="data_user.php" class="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg">
-                <span>👥</span><span>User</span>
+            <a href="data_user.php" class="flex items-center gap-3 text-white/80 hover:bg-white/10 hover:text-white px-4 py-2.5 rounded-xl transition-all font-sora">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.85"/></svg>
+                <span>Daftar User</span>
             </a>
 
-            <a href="alat.php" class="flex items-center space-x-2 bg-white text-blue-600 px-3 py-2 rounded-lg font-medium">
-                <span>📦</span><span>Alat</span>
+            <a href="alat.php" class="flex items-center gap-3 bg-white text-[#1565C0] px-4 py-2.5 rounded-xl font-sora font-semibold shadow-sm">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                <span>Daftar Alat</span>
             </a>
 
-            <a href="kategori.php" class="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg">
-                <span>📁</span><span>Kategori</span>
+            <a href="kategori.php" class="flex items-center gap-3 text-white/80 hover:bg-white/10 hover:text-white px-4 py-2.5 rounded-xl transition-all font-sora">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span>Daftar Kategori</span>
             </a>
 
-            <hr class="border-white/20">
+            <div class="border-t border-white/15 my-2"></div>
 
-            <a href="data_peminjaman.php" class="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg">
-                <span>📄</span><span>Peminjaman</span>
+            <a href="data_peminjaman.php" class="flex items-center gap-3 text-white/80 hover:bg-white/10 hover:text-white px-4 py-2.5 rounded-xl transition-all font-sora">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <span>Data Peminjaman</span>
             </a>
 
-            <a href="pengembalian.php" class="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg">
-                <span>↩️</span><span>Pengembalian</span>
+            <a href="pengembalian.php" class="flex items-center gap-3 text-white/80 hover:bg-white/10 hover:text-white px-4 py-2.5 rounded-xl transition-all font-sora">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 14 4 19 9 24"/><path d="M20 9a9 9 0 0 0-9-9H4"/><path d="M4 19h11a9 9 0 0 0 0-18"/></svg>
+                <span>Data Pengembalian</span>
             </a>
 
-            <a href="log_aktivitas.php" class="flex items-center space-x-2 hover:bg-white/10 px-3 py-2 rounded-lg">
-                <span>📝</span><span>Log Aktivitas</span>
+            <a href="log_aktivitas.php" class="flex items-center gap-3 text-white/80 hover:bg-white/10 hover:text-white px-4 py-2.5 rounded-xl transition-all font-sora">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span>Log Aktivitas</span>
             </a>
 
         </div>
@@ -193,7 +233,7 @@ if (isset($_POST['update'])) {
 </div>
 
 <!-- MAIN -->
-<div class="flex-1 p-8 space-y-8">
+<div class="flex-1 p-8 space-y-8 overflow-y-auto">
 
     <h1 class="text-2xl font-bold text-gray-700">
         <?= $edit ? "Edit Alat" : "Manajemen Alat" ?>
@@ -272,13 +312,13 @@ if (isset($_POST['update'])) {
             </thead>
             <tbody class="divide-y">
             <?php
-            $no=1;
-            $data=mysqli_query($conn,"
+            $no   = 1;
+            $data = mysqli_query($conn,"
                 SELECT alat.*, kategori.nama_kategori
                 FROM alat
-                JOIN kategori ON alat.kategori_id=kategori.id
+                JOIN kategori ON alat.kategori_id = kategori.id
             ");
-            while($d=mysqli_fetch_assoc($data)){
+            while($d = mysqli_fetch_assoc($data)){
             ?>
                 <tr class="text-center hover:bg-gray-50">
                     <td class="p-3"><?= $no++ ?></td>
@@ -298,7 +338,6 @@ if (isset($_POST['update'])) {
             <?php } ?>
             </tbody>
         </table>
-
     </div>
 
 </div>

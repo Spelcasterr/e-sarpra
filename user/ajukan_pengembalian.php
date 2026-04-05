@@ -1,6 +1,7 @@
 <?php
 session_start();
 include '../koneksi.php';
+include '../log_helper.php';
 
 // Validasi login
 if (
@@ -19,10 +20,9 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     die("ID tidak valid.");
 }
 
-$id = (int) $_GET['id'];
+$id      = (int) $_GET['id'];
 $user_id = $_SESSION['user_id'];
 
-// Gunakan prepared statement (WAJIB)
 $stmt = $conn->prepare("
     UPDATE peminjaman
     SET status = 'menunggu_pengembalian'
@@ -30,11 +30,6 @@ $stmt = $conn->prepare("
     AND user_id = ?
     AND status IN ('disetujui', 'terlambat')
 ");
-
-simpanLog($conn,
-"pengembalian",
-"user mengajukan pengembalian ID ".$id
-);
 
 if (!$stmt) {
     die("Prepare failed: " . $conn->error);
@@ -44,8 +39,18 @@ $stmt->bind_param("ii", $id, $user_id);
 $stmt->execute();
 
 if ($stmt->affected_rows > 0) {
+    tambah_log(
+        $conn,
+        $user_id,
+        $_SESSION['username'],
+        $_SESSION['role'],
+        "pengembalian",
+        "User mengajukan pengembalian ID " . $id
+    );
+
+    $stmt->close();
     header("Location: peminjaman_saya.php");
     exit;
-} else {
+} else {                          // ✅ Hapus } yang berlebih di sini
     die("Gagal mengajukan pengembalian atau status tidak valid.");
 }
