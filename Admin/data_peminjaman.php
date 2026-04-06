@@ -37,7 +37,7 @@ $today = date('Y-m-d');
 mysqli_query($conn, "
     UPDATE peminjaman
     SET status = 'terlambat',
-        denda = DATEDIFF('$today', tanggal_kembali) * 5000
+        denda = DATEDIFF('$today', tanggal_kembali) * 5000 
     WHERE status != 'dikembalikan'
       AND tanggal_kembali IS NOT NULL
       AND tanggal_kembali < '$today'
@@ -229,7 +229,7 @@ if (isset($_POST['update'])) {
                     <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select name="status" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
                         <?php
-                        $statuses = ['dipinjam','terlambat','dikembalikan'];
+                        $statuses = ['menunggu','disetujui','ditolak','menunggu_pengembalian','terlambat','dikembalikan'];
                         foreach ($statuses as $s):
                         ?>
                         <option value="<?= $s ?>" <?= $data_edit['status']==$s ? 'selected' : '' ?>>

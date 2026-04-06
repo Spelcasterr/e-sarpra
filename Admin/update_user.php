@@ -1,33 +1,57 @@
 <?php
+session_start();
 include '../koneksi.php';
 
-$id = $_POST['id'];
-$username = $_POST['username'];
-$email = $_POST['email'];
-$role = $_POST['role'];
-$password = $_POST['password'];
-
-if($password != ""){
-
-    $hash = password_hash($password, PASSWORD_DEFAULT);
-
-    mysqli_query($conn,"UPDATE users SET
-        username='$username',
-        email='$email',
-        password='$hash',
-        role='$role'
-        WHERE id='$id'
-    ");
-
-}else{
-
-    mysqli_query($conn,"UPDATE users SET
-        username='$username',
-        email='$email',
-        role='$role'
-        WHERE id='$id'
-    ");
+// Cek login & role — FIX: file lama tidak ada cek ini
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header("Location: ../login.php");
+    exit;
 }
 
-header("Location: data_user.php");
-exit;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: data_user.php");
+    exit;
+}
+
+$id       = (int) $_POST['id'];
+$username = mysqli_real_escape_string($conn, $_POST['username']);
+$email    = mysqli_real_escape_string($conn, $_POST['email']);
+$role     = mysqli_real_escape_string($conn, $_POST['role']);
+$password = $_POST['password'];
+
+/* =============================================
+   GUNAKAN TRANSAKSI
+   Elemen UKK: 1.16 (commit/rollback)
+============================================= */
+mysqli_begin_transaction($conn);
+
+try {
+
+    if ($password != "") {
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt = $conn->prepare("UPDATE users SET username=?, email=?, password=?, role=? WHERE id=?");
+        $stmt->bind_param("ssssi", $username, $email, $hash, $role, $id);
+    } else {
+        $stmt = $conn->prepare("UPDATE users SET username=?, email=?, role=? WHERE id=?");
+        $stmt->bind_param("sssi", $username, $email, $role, $id);
+    }
+
+    if (!$stmt->execute()) {
+        throw new Exception("Gagal update user: " . $stmt->error);
+    }
+
+    $stmt->close();
+
+    mysqli_commit($conn);
+
+    header("Location: data_user.php");
+    exit;
+
+} catch (Exception $e) {
+
+    mysqli_rollback($conn);
+
+    header("Location: data_user.php?error=" . urlencode($e->getMessage()));
+    exit;
+}

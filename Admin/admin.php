@@ -64,7 +64,7 @@ $total_terlambat = mysqli_fetch_assoc(
    PEMINJAMAN TERBARU
 ======================== */
 
-$peminjaman_terbaru = mysqli_query($conn,"
+$peminjaman_terbaru = mysqli_query($conn, "
     SELECT p.*, u.username, a.nama_alat
     FROM peminjaman p
     JOIN users u ON p.user_id = u.id
@@ -77,8 +77,8 @@ $peminjaman_terbaru = mysqli_query($conn,"
    LOG AKTIVITAS TERAKHIR
 ======================== */
 
-$log_terakhir = mysqli_query($conn,"
-    SELECT l.*, u.username 
+$log_terakhir = mysqli_query($conn, "
+    SELECT l.*, u.username
     FROM log_aktivitas l
     JOIN users u ON l.user_id = u.id
     ORDER BY l.id DESC
@@ -96,37 +96,25 @@ $log_terakhir = mysqli_query($conn,"
 
 <body class="bg-gray-100 flex">
 
-<!-- ========================
-     SIDEBAR
-======================== -->
+<!-- SIDEBAR -->
 <div class="w-64 min-h-screen bg-gradient-to-b from-[#1565C0] to-[#0D47A1] text-white p-6 flex flex-col justify-between">
     <div>
 
-        <!-- HEADER -->
         <div class="mb-8">
             <h2 class="text-2xl font-bold">Admin Panel</h2>
             <p class="text-sm text-white/80">Manajemen Peminjaman</p>
         </div>
 
-        <!-- PROFILE -->
         <div class="bg-white/10 rounded-xl p-4 flex items-center space-x-3 mb-8">
-
             <div class="w-12 h-12 rounded-full bg-white/30 flex items-center justify-center text-lg font-bold">
                 <?= $initial ?>
             </div>
-
             <div>
-                <p class="font-semibold">
-                    <?= htmlspecialchars($username) ?>
-                </p>
-                <p class="text-xs text-white/70 capitalize">
-                    <?= htmlspecialchars($role) ?>
-                </p>
+                <p class="font-semibold"><?= htmlspecialchars($username) ?></p>
+                <p class="text-xs text-white/70 capitalize"><?= htmlspecialchars($role) ?></p>
             </div>
-
         </div>
 
-        <!-- MENU -->
         <div class="space-y-1 text-sm">
 
     <a href="admin.php" class="flex items-center gap-3 bg-white text-[#1565C0] px-4 py-2.5 rounded-xl font-sora font-semibold shadow-sm">
@@ -166,24 +154,19 @@ $log_terakhir = mysqli_query($conn,"
         <span>Log Aktivitas</span>
     </a>
 
-</div>
+        </div>
     </div>
 
     <a href="../logout.php"
        class="block bg-red-500 text-center py-2 rounded-lg hover:bg-red-600 font-medium">
        Logout
     </a>
-
 </div>
 
-<!-- ========================
-     MAIN CONTENTeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
-======================== -->
+<!-- MAIN CONTENT -->
 <div class="flex-1 p-8">
 
-    <h1 class="text-2xl font-bold text-gray-700 mb-6">
-        Dashboard
-    </h1>
+    <h1 class="text-2xl font-bold text-gray-700 mb-6">Dashboard</h1>
 
     <!-- CARD STATISTIK -->
     <div class="grid grid-cols-5 gap-6 mb-8">
@@ -223,7 +206,7 @@ $log_terakhir = mysqli_query($conn,"
             <h2 class="font-semibold mb-4">Peminjaman Terbaru</h2>
 
             <?php if (mysqli_num_rows($peminjaman_terbaru) > 0): ?>
-                <?php while($p = mysqli_fetch_assoc($peminjaman_terbaru)): ?>
+                <?php while ($p = mysqli_fetch_assoc($peminjaman_terbaru)): ?>
                     <div class="border-b py-2 text-sm">
                         <b><?= htmlspecialchars($p['username']) ?></b> meminjam
                         <b><?= htmlspecialchars($p['nama_alat']) ?></b>
@@ -233,7 +216,6 @@ $log_terakhir = mysqli_query($conn,"
             <?php else: ?>
                 <p class="text-sm text-gray-500">Belum ada data</p>
             <?php endif; ?>
-
         </div>
 
         <!-- LOG AKTIVITAS -->
@@ -241,7 +223,7 @@ $log_terakhir = mysqli_query($conn,"
             <h2 class="font-semibold mb-4">Aktivitas Terakhir</h2>
 
             <?php if (mysqli_num_rows($log_terakhir) > 0): ?>
-                <?php while($log = mysqli_fetch_assoc($log_terakhir)): ?>
+                <?php while ($log = mysqli_fetch_assoc($log_terakhir)): ?>
                     <div class="border-b py-2 text-sm">
                         <span class="font-semibold text-blue-600">
                             <?= htmlspecialchars($log['username']) ?>
@@ -252,12 +234,11 @@ $log_terakhir = mysqli_query($conn,"
             <?php else: ?>
                 <p class="text-sm text-gray-500">Belum ada aktivitas</p>
             <?php endif; ?>
-
         </div>
 
     </div>
 
 </div>
 
-++</body>
-</html>\ yb
+</body>
+</html>

@@ -77,13 +77,13 @@ $alat = mysqli_query($conn, $query);
 
     <div class="relative">
         <div class="inline-flex items-center gap-2 bg-white/15 border border-white/25 rounded-full px-4 py-1 text-xs text-white/90 font-medium tracking-wide mb-6">
-            ✦ Sistem Sekolah Digital
+            ✦ Sistem Kantor Digital
         </div>
         <h1 class="font-sora font-extrabold text-4xl md:text-6xl text-white tracking-tight leading-tight mb-4">
             Sarana &amp; <span class="text-yellow-400">Prasarana</span><br>Dalam Genggaman
         </h1>
         <p class="text-white/70 text-base md:text-lg max-w-md mx-auto leading-relaxed">
-            Pinjam peralatan sekolah dengan mudah, cepat, dan terkelola dengan baik.
+            Peminjaman alat di PT. Maju Bersama kini lebih mudah dan cepat dengan E-Sarpras. Cukup beberapa klik, alat siap digunakan!
         </p>
     </div>
 </section>
@@ -150,7 +150,7 @@ $alat = mysqli_query($conn, $query);
             <div class="bg-[#E3F2FD] h-40 flex items-center justify-center relative overflow-hidden">
                 <img src="gambar/<?= htmlspecialchars($a['gambar']) ?>"
                      alt="<?= htmlspecialchars($a['nama_alat']) ?>"
-                     class="card-img max-h-28 max-w-28 object-contain">
+                     class="card-img max-h-48 max-w-48 object-contain">
                 <span class="absolute top-2.5 right-2.5 bg-[#1565C0] text-white font-sora font-semibold text-[10px] px-2.5 py-0.5 rounded-full">
                     Tersedia
                 </span>

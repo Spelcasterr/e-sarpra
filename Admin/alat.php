@@ -27,11 +27,9 @@ $edit = false;
 if (isset($_GET['hapus'])) {
     $id = (int)$_GET['hapus'];
 
-    // Ambil nama alat untuk log
     $ambilAlat = mysqli_query($conn, "SELECT nama_alat FROM alat WHERE id=$id");
     $dataAlat  = mysqli_fetch_assoc($ambilAlat);
 
-    // Cek peminjaman yang masih aktif
     $cek = mysqli_query($conn, "
         SELECT id FROM peminjaman 
         WHERE alat_id = $id 
@@ -46,20 +44,10 @@ if (isset($_GET['hapus'])) {
         exit;
     }
 
-    // Hapus riwayat peminjaman dulu
     mysqli_query($conn, "DELETE FROM peminjaman WHERE alat_id = $id");
-
-    // Baru hapus alat
     mysqli_query($conn, "DELETE FROM alat WHERE id = $id");
 
-    tambah_log(
-        $conn,
-        $user_id,
-        $username,
-        $role,
-        "Hapus Alat",
-        "Menghapus alat: " . $dataAlat['nama_alat']
-    );
+    tambah_log($conn, $user_id, $username, $role, "Hapus Alat", "Menghapus alat: " . $dataAlat['nama_alat']);
 
     header("Location: alat.php");
     exit;
@@ -98,14 +86,7 @@ if (isset($_POST['simpan'])) {
         VALUES ('$nama', '$kategori', '$stok', '$gambar')
     ");
 
-    tambah_log(
-        $conn,
-        $user_id,
-        $username,
-        $role,
-        "Tambah Alat",
-        "Menambahkan alat: " . $nama
-    );
+    tambah_log($conn, $user_id, $username, $role, "Tambah Alat", "Menambahkan alat: " . $nama);
 
     header("Location: alat.php");
     exit;
@@ -141,14 +122,7 @@ if (isset($_POST['update'])) {
         WHERE id    = '$id'
     ");
 
-    tambah_log(
-        $conn,
-        $user_id,
-        $username,
-        $role,
-        "Edit Alat",
-        "Mengedit alat: " . $nama
-    );
+    tambah_log($conn, $user_id, $username, $role, "Edit Alat", "Mengedit alat: " . $nama);
 
     header("Location: alat.php");
     exit;
@@ -324,7 +298,15 @@ if (isset($_POST['update'])) {
                     <td class="p-3"><?= $no++ ?></td>
                     <td class="p-3"><?= htmlspecialchars($d['nama_alat']) ?></td>
                     <td class="p-3"><?= htmlspecialchars($d['nama_kategori']) ?></td>
-                    <td class="p-3"><?= $d['stok'] ?></td>
+                    <td class="p-3">
+                        <?php if ($d['stok'] == 0): ?>
+                            <span class="bg-red-100 text-red-600 text-xs font-semibold px-2 py-1 rounded-full">
+                                Stok Habis
+                            </span>
+                        <?php else: ?>
+                            <?= $d['stok'] ?>
+                        <?php endif; ?>
+                    </td>
                     <td class="p-3">
                         <img src="../gambar/<?= $d['gambar'] ?>" class="w-20 mx-auto rounded">
                     </td>
